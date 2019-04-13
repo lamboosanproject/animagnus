@@ -1,0 +1,46 @@
+version: '3.1'
+
+volumes:
+    pgdata:
+        driver: local
+
+services:
+    nginx:
+        restart: always
+        image: nginx:latest
+        expose:
+          - 8080
+        ports:
+          - "80:8080"
+        volumes:
+            - ./animagnus/static:/srv/www/animagnus/static
+            - ./animagnus/media:/srv/www/animagnus/media
+            - ./animagnus/logs:/srv/www/animagnus/logs
+            - ./docker/nginx:/etc/nginx/conf.d
+
+        depends_on:
+            - python
+    python:
+        restart: always
+        build:
+            context: .
+            dockerfile: docker/python/Dockerfile
+        volumes:
+            - ./animagnus:/srv/www/animagnus
+        expose:
+          - 8000
+        ports:
+            - 8000:8000
+        command: "gunicorn -c gunicorn.py animagnus.wsgi"
+         
+    mariadb:
+        image: mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: test
+            MYSQL_DATABASE: animagnus
+        ports:
+            - "8889:3306"
+        volumes:
+            - ./mysql:/var/lib/mysql
